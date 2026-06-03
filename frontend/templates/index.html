@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>안심링크 — 보호자 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:        #05080f;
+  --panel:     #0b1020;
+  --panel2:    #0f1628;
+  --panel3:    #141d32;
+  --line:      rgba(255,255,255,0.055);
+  --line2:     rgba(255,255,255,0.09);
+  --blue:      #4f8cff;
+  --blue-g:    linear-gradient(135deg,#4f8cff,#7c5cfc);
+  --blue-dim:  rgba(79,140,255,0.12);
+  --green:     #34d399;
+  --green-dim: rgba(52,211,153,0.12);
+  --red:       #f87171;
+  --red-dim:   rgba(248,113,113,0.12);
+  --amber:     #fbbf24;
+  --amber-dim: rgba(251,191,36,0.12);
+  --purple:    #a78bfa;
+  --t1: #f0f4ff;
+  --t2: #8899bb;
+  --t3: #445566;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Noto Sans KR', sans-serif;
+  --r: 14px;
+  --sidebar: 230px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);display:flex;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;z-index:10;position:relative;}
+.sidebar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue-g);}
+.logo-wrap{padding:26px 22px 22px;border-bottom:1px solid var(--line);}
+.logo-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--blue);text-transform:uppercase;margin-bottom:8px;opacity:.8;}
+.logo-mark{font-size:19px;font-weight:900;letter-spacing:-1px;background:var(--blue-g);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:4px;}
+.logo-sub{font-family:var(--mono);font-size:10px;color:var(--t3);}
+.nav-wrap{flex:1;padding:16px 12px;overflow-y:auto;}
+.nav-group-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);padding:10px 10px 5px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:all .18s;position:relative;user-select:none;margin-bottom:2px;border:1px solid transparent;}
+.nav-item:hover{background:var(--panel2);color:var(--t1);}
+.nav-item.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(79,140,255,.18);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:22%;bottom:22%;width:2px;background:var(--blue);border-radius:0 2px 2px 0;}
+.nav-ico{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.sidebar-bottom{padding:16px 22px;border-top:1px solid var(--line);}
+.live-pill{display:flex;align-items:center;gap:8px;background:var(--green-dim);border:1px solid rgba(52,211,153,.2);border-radius:20px;padding:6px 12px;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.live-text{font-family:var(--mono);font-size:10px;color:var(--green);font-weight:500;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
+.tb-title{font-size:14px;font-weight:700;}
+.tb-sub{font-family:var(--mono);font-size:10px;color:var(--t3);}
+.clock-badge{font-family:var(--mono);font-size:12px;color:var(--t2);background:var(--panel2);border:1px solid var(--line);padding:5px 12px;border-radius:7px;}
+.notif-btn{width:34px;height:34px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;}
+.content{flex:1;overflow-y:auto;padding:22px 28px;scrollbar-width:thin;scrollbar-color:var(--panel3) transparent;}
+
+/* PAGE */
+.page{display:none;}
+.page.active{display:block;animation:pi .22s ease;}
+@keyframes pi{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+/* LAYOUT */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;}
+.mb13{margin-bottom:13px;}.mb18{margin-bottom:18px;}
+
+/* CARD */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;transition:border-color .2s;}
+.card:hover{border-color:var(--line2);}
+.card-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:14px;}
+
+/* ── HOME ── */
+.hero{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px 26px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;gap:20px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--green);}
+.hero::after{content:'';position:absolute;top:-80px;right:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(52,211,153,.05) 0%,transparent 70%);pointer-events:none;}
+.status-pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;padding:5px 13px;border-radius:20px;margin-bottom:14px;}
+.status-pill.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(52,211,153,.2);}
+.status-pill.warn{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(251,191,36,.2);}
+.status-pill.danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.5s infinite;}
+.hero-name{font-size:26px;font-weight:800;letter-spacing:-1px;margin-bottom:7px;}
+.hero-meta{font-family:var(--mono);font-size:11px;color:var(--t2);}
+.hero-right{display:flex;gap:12px;}
+.env-tile{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 20px;text-align:center;min-width:88px;}
+.env-num{font-family:var(--mono);font-size:24px;font-weight:500;background:var(--blue-g);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:4px;}
+.env-lbl{font-size:11px;color:var(--t3);}
+
+.sum-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;transition:all .2s;}
+.sum-card:hover{border-color:var(--line2);transform:translateY(-1px);}
+.sum-ico{font-size:20px;margin-bottom:12px;}
+.sum-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:7px;}
+.sum-val{font-family:var(--mono);font-size:22px;font-weight:500;margin-bottom:4px;}
+.sum-sub{font-size:11px;color:var(--t2);}
+.tag{display:inline-block;margin-top:8px;font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;}
+.tag.ok{background:var(--green-dim);color:var(--green);}
+.tag.warn{background:var(--amber-dim);color:var(--amber);}
+.tag.info{background:var(--blue-dim);color:var(--blue);}
+
+.alert-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:9px;cursor:pointer;transition:background .15s;border:1px solid transparent;}
+.alert-row:hover{background:var(--panel2);border-color:var(--line);}
+.alert-row+.alert-row{margin-top:5px;}
+.a-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.a-dot.r{background:var(--red);box-shadow:0 0 6px var(--red);}
+.a-dot.y{background:var(--amber);box-shadow:0 0 6px var(--amber);}
+.a-dot.g{background:var(--green);box-shadow:0 0 6px var(--green);}
+.a-info{flex:1;}
+.a-msg{font-size:13px;font-weight:500;margin-bottom:2px;}
+.a-time{font-family:var(--mono);font-size:10px;color:var(--t3);}
+.a-unread{width:5px;height:5px;border-radius:50%;background:var(--blue);}
+.more-link{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:12px;padding:9px;font-family:var(--mono);font-size:11px;color:var(--blue);border-radius:8px;border:1px solid var(--blue-dim);cursor:pointer;transition:background .15s;}
+.more-link:hover{background:var(--blue-dim);}
+
+/* ── ACTIVITY ── */
+.date-tabs{display:flex;gap:6px;margin-bottom:18px;}
+.dtab{padding:7px 16px;border-radius:7px;font-family:var(--mono);font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--t2);transition:all .15s;}
+.dtab.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(79,140,255,.25);}
+.dtab:hover:not(.active){background:var(--panel2);color:var(--t1);}
+.stat-strip{display:flex;gap:12px;margin-bottom:13px;}
+.stat-tile{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+.st-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:6px;}
+.st-val{font-family:var(--mono);font-size:20px;font-weight:500;}
+.st-val.g{color:var(--green);}.st-val.y{color:var(--amber);}.st-val.r{color:var(--red);}
+
+/* ── ALERTS ── */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.fchip{padding:5px 14px;border-radius:20px;font-family:var(--mono);font-size:10px;font-weight:500;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--t2);transition:all .15s;}
+.fchip.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(79,140,255,.25);}
+.fchip:hover:not(.active){background:var(--panel2);color:var(--t1);}
+.acard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:8px;cursor:pointer;transition:all .18s;}
+.acard:hover{border-color:var(--line2);background:var(--panel2);transform:translateY(-1px);}
+.acard-top{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.sev{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.5px;}
+.sev.d{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.15);}
+.sev.w{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(251,191,36,.15);}
+.sev.o{background:var(--green-dim);color:var(--green);border:1px solid rgba(52,211,153,.15);}
+.acard-title{flex:1;font-size:13px;font-weight:600;}
+.acard-time{font-family:var(--mono);font-size:10px;color:var(--t3);}
+.acard-desc{font-size:12px;color:var(--t2);line-height:1.65;}
+.acard-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+.ptag{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 9px;border-radius:10px;}
+.ptag.done{background:var(--green-dim);color:var(--green);}
+.ptag.pend{background:var(--amber-dim);color:var(--amber);}
+.ai-note{font-size:11px;color:var(--t3);}
+.mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px;}
+.mstat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;text-align:center;}
+.mnum{font-family:var(--mono);font-size:32px;font-weight:500;line-height:1;margin-bottom:6px;}
+.mlbl{font-size:11px;color:var(--t3);}
+
+/* ── REALTIME ── */
+.rt-hero{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;align-items:flex-start;gap:16px;margin-bottom:13px;}
+.rt-icon-box{width:50px;height:50px;border-radius:12px;background:var(--green-dim);border:1px solid rgba(52,211,153,.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.rt-title{font-size:15px;font-weight:700;margin-bottom:6px;}
+.rt-ai{font-size:12px;color:var(--t2);line-height:1.65;background:var(--panel2);padding:10px 14px;border-radius:8px;border-left:2px solid var(--blue);margin-top:9px;}
+.rt-ts{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:6px;}
+.sensor-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;transition:border-color .2s;}
+.sensor-card:hover{border-color:var(--line2);}
+.sc-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:12px;}
+.sc-row{display:flex;align-items:center;gap:8px;}
+.sc-ind{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.sc-ind.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
+.sc-ind.warn{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+.sc-val{font-family:var(--mono);font-size:20px;font-weight:500;}
+.sc-sub{font-size:11px;color:var(--t2);margin-top:5px;}
+.cam-box{background:var(--panel2);border:1px dashed var(--line2);border-radius:9px;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:6px;}
+.cam-box .ci{font-size:24px;opacity:.3;}
+.cam-box span{font-size:11px;}
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:13px;}
+.act-btn{display:flex;flex-direction:column;align-items:center;gap:9px;padding:20px 16px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:600;color:var(--t2);transition:all .18s;}
+.act-btn .bi{font-size:22px;}
+.act-btn.call:hover{background:var(--green-dim);color:var(--green);border-color:rgba(52,211,153,.25);}
+.act-btn.check:hover{background:var(--blue-dim);color:var(--blue);border-color:rgba(79,140,255,.25);}
+.act-btn.emrg:hover{background:var(--red-dim);color:var(--red);border-color:rgba(248,113,113,.25);}
+
+/* ── SETTINGS ── */
+.settings-block{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:13px;}
+.sb-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--line);}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);}
+.srow:last-child{border-bottom:none;padding-bottom:0;}
+.srow-lbl{font-size:13px;font-weight:500;}
+.srow-desc{font-size:11px;color:var(--t3);margin-top:2px;}
+.sval{font-family:var(--mono);font-size:11px;color:var(--blue);background:var(--blue-dim);padding:4px 11px;border-radius:6px;white-space:nowrap;}
+.toggle{width:38px;height:21px;border-radius:11px;background:var(--panel3);border:1px solid var(--line2);position:relative;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.toggle.on{background:var(--green);border-color:var(--green);}
+.toggle::after{content:'';position:absolute;width:15px;height:15px;border-radius:50%;background:white;top:2px;left:2px;transition:transform .2s;}
+.toggle.on::after{transform:translateX(17px);}
+.profile-row{display:flex;align-items:center;gap:16px;background:var(--panel2);border-radius:10px;padding:16px;margin-bottom:16px;}
+.pav{width:50px;height:50px;border-radius:50%;background:var(--blue-g);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.pname{font-size:15px;font-weight:700;margin-bottom:3px;}
+.pinfo{font-size:11px;color:var(--t2);}
+.api-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);}
+.api-row:last-child{border-bottom:none;}
+.api-name{font-size:13px;font-weight:500;}
+.api-chip{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;font-weight:600;padding:3px 10px;border-radius:10px;}
+.api-chip.on{background:var(--green-dim);color:var(--green);}
+.api-chip.off{background:var(--red-dim);color:var(--red);}
+
+@media(max-width:960px){
+  :root{--sidebar:58px;}
+  .logo-eyebrow,.logo-sub,.logo-mark,.nav-group-label,.nav-item span,.live-text{display:none;}
+  .nav-item{justify-content:center;}
+  .g4{grid-template-columns:1fr 1fr;}
+  .hero{flex-direction:column;}
+}
+@media(max-width:640px){
+  .content{padding:14px;}
+  .g2,.g3{grid-template-columns:1fr;}
+  .action-grid{grid-template-columns:1fr;}
+  .stat-strip{flex-wrap:wrap;}
+  .mstats{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo-wrap">
+    <div class="logo-eyebrow">Guardian System</div>
+    <div class="logo-mark">AnsimLink</div>
+    <div class="logo-sub">안심링크 v1.0</div>
+  </div>
+  <nav class="nav-wrap">
+    <div class="nav-group-label">모니터링</div>
+    <div class="nav-item active" onclick="nav('home',this)"><span class="nav-ico">🏠</span><span>홈</span></div>
+    <div class="nav-item" onclick="nav('activity',this)"><span class="nav-ico">📊</span><span>활동기록</span></div>
+    <div class="nav-item" onclick="nav('alerts',this)"><span class="nav-ico">🔔</span><span>알림 히스토리</span></div>
+    <div class="nav-item" onclick="nav('realtime',this)"><span class="nav-ico">📡</span><span>실시간 모니터링</span></div>
+    <div class="nav-group-label">시스템</div>
+    <div class="nav-item" onclick="nav('settings',this)"><span class="nav-ico">⚙️</span><span>설정</span></div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="live-pill"><div class="live-dot"></div><span class="live-text">시스템 정상</span></div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title" id="tb-title">홈</div>
+      <div class="tb-sub" id="tb-sub">오늘의 상태 요약</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="clock-badge" id="clock">--:--:--</div>
+      <div class="notif-btn">🔔</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="hero">
+        <div>
+          <div class="status-pill ok"><div class="pill-dot"></div>정상</div>
+          <div class="hero-name">이순자 할머니</div>
+          <div class="hero-meta">마지막 활동 <strong style="color:var(--t1)">3분 전</strong> · 14:42 · 거실 이동 감지</div>
+        </div>
+        <div class="hero-right">
+          <div class="env-tile"><div class="env-num">23.4°</div><div class="env-lbl">실내 온도</div></div>
+          <div class="env-tile"><div class="env-num">61%</div><div class="env-lbl">습도</div></div>
+        </div>
+      </div>
+
+      <div class="g3 mb13">
+        <div class="sum-card">
+          <div class="sum-ico">🌅</div>
+          <div class="sum-lbl">기상 시간</div>
+          <div class="sum-val">07:52</div>
+          <div class="sum-sub">평소보다 8분 빠름</div>
+          <span class="tag ok">정상</span>
+        </div>
+        <div class="sum-card">
+          <div class="sum-ico">🚶</div>
+          <div class="sum-lbl">오늘 활동량</div>
+          <div class="sum-val">87%</div>
+          <div class="sum-sub">어제 대비 −4%</div>
+          <span class="tag ok">양호</span>
+        </div>
+        <div class="sum-card">
+          <div class="sum-ico">🌙</div>
+          <div class="sum-lbl">낮잠</div>
+          <div class="sum-val" style="font-size:16px;padding-top:4px">1h 45m</div>
+          <div class="sum-sub">13:10 ~ 14:55</div>
+          <span class="tag info">정상 범위</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">최근 알림</div>
+        <div class="alert-row">
+          <div class="a-dot y"></div>
+          <div class="a-info"><div class="a-msg">낮잠 후 30분간 무활동</div><div class="a-time">오늘 15:25 · 확인됨</div></div>
+        </div>
+        <div class="alert-row">
+          <div class="a-dot g"></div>
+          <div class="a-info"><div class="a-msg">정상 기상 확인</div><div class="a-time">오늘 08:05 · 자동 처리</div></div>
+        </div>
+        <div class="alert-row">
+          <div class="a-dot y"></div>
+          <div class="a-info"><div class="a-msg">취침이 평소보다 1시간 늦음</div><div class="a-time">어제 23:41 · 확인됨</div></div>
+          <div class="a-unread"></div>
+        </div>
+        <div class="more-link" onclick="nav('alerts',document.querySelector('[onclick*=alerts]'))">전체 알림 보기 →</div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div class="page" id="page-activity">
+      <div class="date-tabs">
+        <div class="dtab active">오늘</div>
+        <div class="dtab">어제</div>
+        <div class="dtab">이번 주</div>
+        <div class="dtab">직접 선택</div>
+      </div>
+
+      <div class="stat-strip mb13">
+        <div class="stat-tile"><div class="st-lbl">평균 기상</div><div class="st-val g">07:48</div></div>
+        <div class="stat-tile"><div class="st-lbl">활동 시간</div><div class="st-val">8h 14m</div></div>
+        <div class="stat-tile"><div class="st-lbl">이상 감지</div><div class="st-val y">1회</div></div>
+        <div class="stat-tile"><div class="st-lbl">평균 취침</div><div class="st-val">22:30</div></div>
+      </div>
+
+      <div class="card mb13">
+        <div class="card-label" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span>24시간 활동 타임라인</span>
+          <div style="display:flex;gap:14px">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--green);display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>활동</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--purple);display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:var(--purple);display:inline-block"></span>수면</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--red);display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block"></span>이상</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--t3);display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:var(--panel3);display:inline-block"></span>무활동</span>
+          </div>
+        </div>
+        <div id="timeline" style="display:flex;gap:2px;height:28px;margin-bottom:9px;border-radius:4px;overflow:hidden"></div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--t3)">
+          <span>00:00</span><span>03:00</span><span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span><span>24:00</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">주간 활동량 추이</div>
+        <canvas id="weekChart" height="110"></canvas>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <div class="filter-bar">
+        <div class="fchip active">전체</div>
+        <div class="fchip">🔴 긴급</div>
+        <div class="fchip">🟡 확인필요</div>
+        <div class="fchip">🟢 정보</div>
+        <div class="fchip">오늘</div>
+        <div class="fchip">이번 주</div>
+        <div class="fchip">이번 달</div>
+      </div>
+      <div class="acard">
+        <div class="acard-top"><span class="sev w">● 확인필요</span><span class="acard-title">낮잠 후 30분간 무활동</span><span class="acard-time">오늘 15:25</span></div>
+        <div class="acard-desc">14:55 낮잠 종료 후 15:25까지 PIR 무반응. 정상 낮잠 종료 후 패턴과 다름.</div>
+        <div class="acard-foot"><span class="ptag done">✓ 확인됨</span><span class="ai-note">🤖 낙상 가능성 낮음 · 수면 연장 추정</span></div>
+      </div>
+      <div class="acard">
+        <div class="acard-top"><span class="sev o">● 정보</span><span class="acard-title">정상 기상 확인</span><span class="acard-time">오늘 08:05</span></div>
+        <div class="acard-desc">07:52 기상 감지. 설정 범위(07:00~09:00) 내 정상 패턴.</div>
+        <div class="acard-foot"><span class="ptag done">✓ 자동 처리</span><span class="ai-note">🤖 정상 기상 패턴</span></div>
+      </div>
+      <div class="acard">
+        <div class="acard-top"><span class="sev w">● 확인필요</span><span class="acard-title">취침 시간 이상 — 평소보다 71분 늦음</span><span class="acard-time">어제 23:41</span></div>
+        <div class="acard-desc">평균 취침(22:30) 대비 71분 지연. TV 시청 중 수면 전환으로 추정.</div>
+        <div class="acard-foot"><span class="ptag done">✓ 확인됨</span><span class="ai-note">🤖 TV 취침 패턴 · 위험도 낮음</span></div>
+      </div>
+      <div class="acard">
+        <div class="acard-top"><span class="sev d">● 긴급</span><span class="acard-title">큰 소리 후 5분간 무활동</span><span class="acard-time">3일 전 11:34</span></div>
+        <div class="acard-desc">주방 큰 충격음 감지 후 PIR 무반응 5분. Telegram 즉시 알림 발송.</div>
+        <div class="acard-foot"><span class="ptag done">✓ 확인됨 (오인)</span><span class="ai-note">🤖 그릇 낙하 추정 · 이후 정상</span></div>
+      </div>
+      <div class="mstats">
+        <div class="mstat"><div class="mnum" style="color:var(--t1)">12</div><div class="mlbl">이번 달 총 알림</div></div>
+        <div class="mstat"><div class="mnum" style="color:var(--amber)">8</div><div class="mlbl">확인필요</div></div>
+        <div class="mstat"><div class="mnum" style="color:var(--red)">1</div><div class="mlbl">긴급</div></div>
+      </div>
+    </div>
+
+    <!-- REALTIME -->
+    <div class="page" id="page-realtime">
+      <div class="rt-hero">
+        <div class="rt-icon-box">✅</div>
+        <div style="flex:1">
+          <div class="rt-title">현재 상황: 거실 정상 활동 중</div>
+          <div class="rt-ai">🤖 AI 판단: 어르신이 거실에서 TV 시청 중으로 추정됩니다. 움직임 패턴이 규칙적이며 위험 징후가 없습니다.</div>
+          <div class="rt-ts">마지막 업데이트: 14:42:07</div>
+        </div>
+      </div>
+      <div class="g4 mb13">
+        <div class="sensor-card">
+          <div class="sc-lbl">PIR 센서</div>
+          <div class="sc-row"><div class="sc-ind ok"></div><div class="sc-val" style="color:var(--green)">감지 중</div></div>
+          <div class="sc-sub">14:42 마지막 감지</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sc-lbl">사운드 센서</div>
+          <div class="sc-row"><div class="sc-ind ok"></div><div class="sc-val" style="color:var(--green)">정상</div></div>
+          <div class="sc-sub">TV 소리 감지 중</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sc-lbl">온도 / 습도</div>
+          <div class="sc-row"><div class="sc-ind ok"></div><div class="sc-val">23.4°</div></div>
+          <div class="sc-sub">습도 61%</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sc-lbl">카메라 캡처</div>
+          <div class="cam-box"><div class="ci">📷</div><span>최근 캡처 없음</span></div>
+        </div>
+      </div>
+      <div class="action-grid">
+        <button class="act-btn call"><div class="bi">📞</div>전화하기</button>
+        <button class="act-btn check"><div class="bi">✅</div>확인했음</button>
+        <button class="act-btn emrg"><div class="bi">🚨</div>119 신고 안내</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-block">
+        <div class="sb-title">어르신 프로필</div>
+        <div class="profile-row">
+          <div class="pav">👵</div>
+          <div><div class="pname">이순자</div><div class="pinfo">78세 · 담당: 이순희 (010-0000-0000)</div></div>
+        </div>
+      </div>
+      <div class="settings-block">
+        <div class="sb-title">패턴 기준 설정</div>
+        <div class="srow"><div><div class="srow-lbl">기상 시간 범위</div><div class="srow-desc">이 범위 벗어나면 알림 발송</div></div><div class="sval">07:00 ~ 09:00</div></div>
+        <div class="srow"><div><div class="srow-lbl">낮잠 시간대</div><div class="srow-desc">이 시간 무활동은 정상 처리</div></div><div class="sval">13:00 ~ 15:30</div></div>
+        <div class="srow"><div><div class="srow-lbl">식사 시간대</div><div class="srow-desc">식사 패턴 분석 기준</div></div><div class="sval">08:00 / 12:30 / 18:30</div></div>
+        <div class="srow"><div><div class="srow-lbl">취침 시간</div><div class="srow-desc">평균 취침 기준</div></div><div class="sval">22:30</div></div>
+      </div>
+      <div class="settings-block">
+        <div class="sb-title">알림 민감도</div>
+        <div class="srow"><div><div class="srow-lbl">무활동 경보 기준</div><div class="srow-desc">이 시간 이상 무활동 시 알림</div></div><div class="sval">30분</div></div>
+        <div class="srow"><div><div class="srow-lbl">긴급 알림 기준</div><div class="srow-desc">큰 소리 + 무활동 동시 감지</div></div><div class="sval">5분</div></div>
+        <div class="srow"><div><div class="srow-lbl">야간 알림 (22:00~07:00)</div><div class="srow-desc">긴급 상황만 발송</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+      <div class="settings-block">
+        <div class="sb-title">연동 상태</div>
+        <div class="api-row"><div class="api-name">Telegram 봇</div><div class="api-chip on"><span>●</span> 연결됨</div></div>
+        <div class="api-row"><div class="api-name">OpenAI API</div><div class="api-chip on"><span>●</span> 연결됨</div></div>
+        <div class="api-row"><div class="api-name">기상청 API</div><div class="api-chip on"><span>●</span> 연결됨</div></div>
+        <div class="api-row"><div class="api-name">라즈베리파이</div><div class="api-chip off"><span>●</span> 연결 끊김</div></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const pageMap = {
+  home:     ['홈','오늘의 상태 요약'],
+  activity: ['활동기록','시간대별 활동 패턴 분석'],
+  alerts:   ['알림 히스토리','수신된 알림 목록 및 통계'],
+  realtime: ['실시간 모니터링','현재 센서 상태 및 AI 판단'],
+  settings: ['설정','패턴 기준 및 알림 설정'],
+};
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if (el) el.classList.add('active');
+  document.getElementById('tb-title').textContent = pageMap[id][0];
+  document.getElementById('tb-sub').textContent   = pageMap[id][1];
+  if (id === 'activity') initCharts();
+}
+
+// 시계
+function tick() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tick,1000); tick();
+
+// 타임라인
+(function(){
+  const seq = [
+    ...Array(28).fill('sleep'),
+    ...Array(2).fill('off'),
+    ...Array(22).fill('active'),
+    ...Array(6).fill('off'),
+    ...Array(18).fill('active'),
+    'anomaly',
+    ...Array(16).fill('active'),
+    ...Array(6).fill('off'),
+    ...Array(5).fill('active'),
+  ];
+  const colors={sleep:'#7c5cfc',off:'#141d32',active:'#34d399',anomaly:'#f87171'};
+  const opac  ={sleep:.7,off:.35,active:.75,anomaly:1};
+  const wrap=document.getElementById('timeline');
+  seq.forEach(t=>{
+    const d=document.createElement('div');
+    d.style.cssText=`flex:1;border-radius:2px;background:${colors[t]};opacity:${opac[t]};cursor:pointer;transition:opacity .15s`;
+    d.onmouseenter=()=>d.style.opacity='1';
+    d.onmouseleave=()=>d.style.opacity=opac[t];
+    wrap.appendChild(d);
+  });
+})();
+
+// 차트 (꺾은선)
+let chartDone=false;
+function initCharts(){
+  if(chartDone)return; chartDone=true;
+  const ctx=document.getElementById('weekChart').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,180);
+  grad.addColorStop(0,'rgba(79,140,255,0.22)');
+  grad.addColorStop(1,'rgba(79,140,255,0)');
+  new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:['월','화','수','목','금','토','일'],
+      datasets:[
+        {
+          label:'활동량 (%)',
+          data:[91,88,94,76,89,83,87],
+          borderColor:'#4f8cff',borderWidth:2,
+          pointBackgroundColor:'#4f8cff',pointRadius:4,pointHoverRadius:6,
+          fill:true,backgroundColor:grad,tension:0.4,
+        },
+        {
+          label:'주간 평균',
+          data:[86,86,86,86,86,86,86],
+          borderColor:'rgba(251,191,36,0.5)',borderWidth:1.5,
+          borderDash:[5,4],pointRadius:0,fill:false,tension:0,
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{color:'#8899bb',font:{size:11,family:"'DM Mono'"},boxWidth:12}},
+        tooltip:{
+          backgroundColor:'#0f1628',borderColor:'rgba(255,255,255,.08)',borderWidth:1,
+          titleColor:'#f0f4ff',bodyColor:'#8899bb',
+          callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#445566',font:{family:"'DM Mono'",size:11}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{min:60,max:100,
+          ticks:{color:'#445566',font:{family:"'DM Mono'",size:11},callback:v=>v+'%'},
+          grid:{color:'rgba(255,255,255,.04)'}
+        }
+      }
+    }
+  });
+}
+
+document.querySelectorAll('.dtab').forEach(b=>b.addEventListener('click',function(){
+  document.querySelectorAll('.dtab').forEach(x=>x.classList.remove('active'));
+  this.classList.add('active');
+}));
+document.querySelectorAll('.fchip').forEach(c=>c.addEventListener('click',function(){
+  document.querySelectorAll('.fchip').forEach(x=>x.classList.remove('active'));
+  this.classList.add('active');
+}));
+</script>
+</body>
+</html>
