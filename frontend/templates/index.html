@@ -571,6 +571,36 @@ document.querySelectorAll('.fchip').forEach(c=>c.addEventListener('click',functi
   document.querySelectorAll('.fchip').forEach(x=>x.classList.remove('active'));
   this.classList.add('active');
 }));
+
+// API 실시간 연동
+function updateStatus() {
+  fetch('/api/status')
+    .then(res => res.json())
+    .then(data => {
+      document.querySelectorAll('.env-num')[0].textContent = data.temperature + '°';
+      document.querySelectorAll('.env-num')[1].textContent = data.humidity + '%';
+
+      const pill = document.querySelector('.status-pill');
+      if (data.status === 'ok') {
+        pill.className = 'status-pill ok';
+        pill.innerHTML = '<div class="pill-dot"></div>정상';
+      } else {
+        pill.className = 'status-pill warn';
+        pill.innerHTML = '<div class="pill-dot"></div>확인필요';
+      }
+
+      document.querySelector('.rt-ai').textContent = '🤖 AI 판단: ' + data.message;
+
+      const sensors = document.querySelectorAll('.sc-val');
+      sensors[0].textContent = data.motion_detected ? '감지 중' : '무활동';
+      sensors[0].style.color = data.motion_detected ? 'var(--green)' : 'var(--red)';
+      sensors[1].textContent = data.sound_detected ? '이상음 감지' : '정상';
+      sensors[1].style.color = data.sound_detected ? 'var(--amber)' : 'var(--green)';
+    });
+}
+
+setInterval(updateStatus, 3000);
+updateStatus();
 </script>
 </body>
 </html>
